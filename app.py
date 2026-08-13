@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import database as db
 
 db.crear_tablas()
@@ -14,7 +15,7 @@ st.divider()
 
 seccion = st.sidebar.selectbox(
     "Navegar a",
-    ["Carta de Productos", "Control de Insumos", "Staff de Baristas"]
+    ["Carta de Productos", "Control de Insumos", "Staff de Baristas", "Estadisticas"]
 )
 
 st.sidebar.divider()
@@ -203,6 +204,84 @@ elif seccion == "Control de Insumos":
                         st.rerun()
                     except ValueError as e:
                         st.error(str(e))
+
+
+elif seccion == "Estadisticas":
+    st.header("Estadisticas de Productos")
+    st.caption("Analisis de la carta con medidas de tendencia central (Pandas)")
+
+    with st.expander("Importar productos desde CSV"):
+        st.write("Carga el dataset `productos_dataset.csv` en la base usando la "
+                 "misma alta del CRUD (una fila = un producto).")
+        if st.button("Importar productos_dataset.csv"):
+            try:
+                cargados = db.importar_productos_csv("productos_dataset.csv")
+                st.success(f"Se cargaron {cargados} productos desde el CSV. "
+                           "Revisa la Carta de Productos para verificarlo.")
+            except FileNotFoundError:
+                st.error("No se encontro el archivo productos_dataset.csv.")
+
+    st.divider()
+
+    # Leemos los productos ya cargados directamente desde la base con Pandas.
+    conn = db.get_connection()
+    df = pd.read_sql("SELECT nombre, categoria, precio_base FROM productos", conn)
+    conn.close()
+
+    if df.empty:
+        st.info("No hay productos cargados todavia. Importa el CSV para analizar los datos.")
+    else:
+        st.subheader("Datos analizados")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+        # Medidas de tendencia central sobre la columna numerica precio_base.
+        media   = df["precio_base"].mean()
+        mediana = df["precio_base"].median()
+        moda    = df["precio_base"].mode()  # puede haber mas de una moda
+
+        st.subheader("Medidas de tendencia central (precio base)")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Media",   f"${media:,.2f}")
+        col2.metric("Mediana", f"${mediana:,.2f}")
+        if len(moda) == 1:
+            col3.metric("Moda", f"${moda.iloc[0]:,.2f}")
+        else:
+            col3.metric("Moda", "Varias")
+
+        st.write(f"**Media:** ${media:,.2f}")
+        st.write(f"**Mediana:** ${mediana:,.2f}")
+        modas_texto = ", ".join(f"${m:,.2f}" for m in moda)
+        st.write(f"**Moda:** {modas_texto}")
+
+        st.subheader("Interpretacion")
+        diferencia = abs(media - mediana)
+        if diferencia < media * 0.05:
+            comentario_centro = (
+                "La media y la mediana son muy parecidas, asi que los precios "
+                "estan bastante equilibrados y no hay valores extremos que tiren "
+                "el promedio para un lado."
+            )
+        else:
+            comentario_centro = (
+                "La media y la mediana se diferencian bastante, lo que sugiere "
+                "que hay algunos productos con precios mas altos (o mas bajos) "
+                "que corren el promedio respecto del valor del medio."
+            )
+
+        if len(moda) == 1:
+            comentario_moda = (
+                f"Ademas, hay una moda clara en ${moda.iloc[0]:,.2f}: es el precio "
+                "que mas se repite en la carta, probablemente el rango de nuestros "
+                "productos mas tipicos."
+            )
+        else:
+            comentario_moda = (
+                "En cuanto a la moda, hay varios precios que se repiten la misma "
+                "cantidad de veces, asi que los valores estan mas repartidos y no "
+                "existe un unico precio dominante."
+            )
+
+        st.write(comentario_centro + " " + comentario_moda)
 
 
 elif seccion == "Staff de Baristas":
