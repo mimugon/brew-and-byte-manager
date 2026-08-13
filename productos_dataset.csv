@@ -1,0 +1,16 @@
+nombre,categoria,precio_base,insumo_id
+Espresso Simple,Caliente,1200,1
+Espresso Doble,Caliente,1500,1
+Americano,Caliente,1300,4
+Cappuccino Clasico,Caliente,1500,2
+Flat White,Caliente,1500,2
+Cortado,Caliente,1200,2
+Mocha,Caliente,1700,5
+Macchiato,Caliente,1300,2
+Cold Brew,Frio,1800,4
+Iced Latte,Frio,1600,2
+Frappe Moka,Frio,1900,5
+Affogato,Frio,1800,3
+Limonada de Cafe,Frio,1600,4
+Chai Latte,Caliente,1500,2
+Te Helado,Frio,1400,4
