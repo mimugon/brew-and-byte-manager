@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 from models import Producto, Insumo, Barista
 
 DB_PATH = "brew_and_byte.db"
@@ -186,6 +187,38 @@ def crear_producto(nombre, categoria, precio_base, insumo_id=None):
     nuevo_id = cursor.lastrowid
     conn.close()
     return nuevo_id
+
+
+def importar_productos_csv(ruta_csv="productos_dataset.csv"):
+    """Lee un CSV con pandas y da de alta cada fila usando crear_producto().
+
+    Recorre el DataFrame con un for y llama a la funcion de alta que ya
+    tenemos programada (una fila = un producto). Devuelve la cantidad de
+    productos que se cargaron correctamente.
+    """
+    df = pd.read_csv(ruta_csv)
+
+    cargados = 0
+    for _, fila in df.iterrows():
+        insumo_id = fila["insumo_id"]
+        # el CSV puede traer celdas vacias en insumo_id -> las pasamos como None
+        if pd.isna(insumo_id):
+            insumo_id = None
+        else:
+            insumo_id = int(insumo_id)
+
+        try:
+            crear_producto(
+                nombre      = str(fila["nombre"]),
+                categoria   = str(fila["categoria"]),
+                precio_base = float(fila["precio_base"]),
+                insumo_id   = insumo_id
+            )
+            cargados += 1
+        except ValueError as e:
+            print(f"Fila omitida ({fila['nombre']}): {e}")
+
+    return cargados
 
 
 def actualizar_producto(id_producto, nombre, categoria, precio_base, insumo_id=None):
